@@ -5,8 +5,11 @@ import pdfplumber
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 import chromadb
+from functools import lru_cache
 
-chromadb_client = chromadb.PersistentClient(path="./chroma_db")    
+persist_directory="./chroma_db"
+chromadb_client = chromadb.PersistentClient(path=persist_directory)    
+embed_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
 def get_file_content(file: UploadFile) -> str:
     if file.content_type == "text/plain":
@@ -29,8 +32,7 @@ def get_chunks(text: str) -> List[str]:
     return text_splitter.split_text(text)
 
 def get_embeddings(chunks: List[str]) -> List[List[float]]:
-    hf_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-    return [hf_model.embed_query(chunk) for chunk in chunks]
+    return [embed_model.embed_query(chunk) for chunk in chunks]
 
 
 def store_embeddings(chunks: List[str], embeddings: List[List[float]], collection_name: str):
@@ -44,7 +46,7 @@ def store_embeddings(chunks: List[str], embeddings: List[List[float]], collectio
     print(f"Collection '{collection_name}' created with {len(chunks)} chunks.")
 
 def list_uploaded_docs():
-    collections = chromadb_client.list_collections()
+    collections = get_all_collections()
     output = []
 
     for col in collections:
@@ -59,3 +61,7 @@ def list_uploaded_docs():
             })
 
     return {"documents": output}
+
+@lru_cache
+def get_all_collections():
+    return chromadb_client.list_collections()
