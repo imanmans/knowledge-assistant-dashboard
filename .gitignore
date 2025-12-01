@@ -1,0 +1,6 @@
+venv/
+.venv/
+uploads/
+.chroma_db/
+chroma_db/
+.Ds_Store
