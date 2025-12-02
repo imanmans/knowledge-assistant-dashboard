@@ -4,3 +4,4 @@ uploads/
 .chroma_db/
 chroma_db/
 .Ds_Store
+**/*/.env

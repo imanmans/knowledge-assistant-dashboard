@@ -11,6 +11,8 @@ services:
 
   frontend:
     build: ./frontend
+    depends_on:
+      - backend
     container_name: nextjs_frontend
     networks:
       - app-network
