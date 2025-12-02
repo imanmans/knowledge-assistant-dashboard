@@ -11,6 +11,9 @@ persist_directory="./chroma_db"
 chromadb_client = chromadb.PersistentClient(path=persist_directory)    
 embed_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
+processing_status = {} # To track processing status of files
+
+
 def get_file_content(file: UploadFile) -> str:
     if file.content_type == "text/plain":
         return file.file.read().decode("utf-8")
@@ -65,3 +68,24 @@ def list_uploaded_docs():
 @lru_cache
 def get_all_collections():
     return chromadb_client.list_collections()
+
+def process_file(file: UploadFile):
+    # Initial processing status
+    file_name = file.filename
+    processing_status[file_name] = {
+        "status": "processing",
+        "chunks": 0,
+        "embeddings": 0
+    }
+
+    # Extract text content
+    content = get_file_content(file)
+    collection_name = f"{file.filename.replace(' ', '_').replace('.pdf', '').replace('.txt', '')}"
+    # Process text: chunking, embedding, storing
+    chunks = get_chunks(content)
+    embeddings = get_embeddings(chunks)
+    store_embeddings(chunks, embeddings, collection_name)
+    # Update processing status
+    processing_status[file_name]["status"] = "completed"
+    processing_status[file_name]["chunks"] = len(chunks)
+    processing_status[file_name]["embeddings"] = len(embeddings)
