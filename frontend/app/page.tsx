@@ -174,21 +174,78 @@ function DocumentsList() {
 }
 
 function AskAssistant() {
+  const [question, setQuestion] = useState("");
+  const [messages, setMessages] = useState<{ role: "user" | "assistant"; content: string; sources?: string[] }[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleAsk = async () => {
+    if (!question) return;
+    setIsLoading(true);
+
+    setMessages(prev => [...prev, { role: "user", content: question }]);
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/ask?question=${encodeURIComponent(question)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!res.ok) throw new Error("Failed to get answer");
+
+      const data = await res.json();
+      setMessages(prev => [
+        ...prev,
+        { role: "assistant", content: data.answer.answer, sources: data.answer.sources },
+      ]);
+      setQuestion("");
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4">
+      {/* Chat Window */}
+      <div className="mt-4 bg-gray-100 rounded-2xl p-5 h-64 overflow-y-auto flex flex-col gap-3">
+        {messages.length === 0 ? (
+          <p className="text-gray-400 text-center mt-20">💬 Start asking a question</p>
+        ) : (
+          messages.map((msg, idx) => (
+            <div
+              key={idx}
+              className={`p-3 rounded-xl shadow-sm w-fit max-w-full ${
+                msg.role === "user" ? "bg-green-600 text-white ml-auto" : "bg-white text-gray-900"
+              }`}
+            >
+              <p>{msg.content}</p>
+              {msg.role === "assistant" && msg.sources && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Sources: {msg.sources.join(", ")}
+                </p>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Input Section */}
       <div className="flex gap-3">
         <input
           type="text"
           placeholder="Ask a question..."
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
           className="flex-1 border p-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900"
         />
-        <button className="p-4 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 transition-colors">Ask</button>
-      </div>
-      <div className="mt-4 bg-gray-100 rounded-2xl p-5 h-64 overflow-y-auto space-y-3">
-        {/* Mock chat bubbles */}
-        <div className="bg-white p-3 rounded-xl shadow-sm w-fit max-w-full">Hello! How can I assist you today?</div>
-        <div className="bg-green-600 text-white p-3 rounded-xl shadow-sm w-fit max-w-full ml-auto">Can you summarize the document I uploaded?</div>
-        <div className="bg-white p-3 rounded-xl shadow-sm w-fit max-w-full">Sure! Here’s a brief summary...</div>
+        <button
+          className="p-4 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 transition-colors"
+          onClick={handleAsk}
+          disabled={isLoading}
+        >
+          {isLoading ? "Thinking..." : "Ask"}
+        </button>
       </div>
     </div>
   );
