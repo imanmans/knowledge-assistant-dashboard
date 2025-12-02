@@ -2,8 +2,11 @@ from fastapi import FastAPI, File, UploadFile, BackgroundTasks
 from typing import List
 from processing import get_file_content, get_chunks, get_embeddings, store_embeddings, list_uploaded_docs
 from chat_helper import generate_answer
+from cors import setup_cors 
 
 app = FastAPI()
+
+setup_cors(app)
 
 def process_file(file: UploadFile):
     # Extract text content
