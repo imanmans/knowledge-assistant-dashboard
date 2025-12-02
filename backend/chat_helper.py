@@ -48,18 +48,15 @@ def build_prompt():
     )
     return prompt
 
-def generate_answer(question: str):
-    docs = search_all_collections(question)
-    prompt = build_prompt()
+def generate_answer(question: str, k: int = 3):
+    docs = search_all_collections(question)[:k]
     context = "\n\n".join([doc.page_content for doc in docs])
-
-    llm = OpenAI(temperature=0) 
+    
+    prompt = build_prompt()
+    llm = OpenAI(temperature=0)
     qa_chain = LLMChain(prompt=prompt, llm=llm)
     answer = qa_chain.run({"context": context, "question": question})
-
+    
     sources = list({d.metadata.get("source", "unknown") for d in docs})
-
-    return {
-        "answer": answer,
-        "sources": sources,
-    }
+    
+    return {"answer": answer, "sources": sources}
